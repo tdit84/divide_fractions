@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Divide Fractions</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 10px;
+    }
+    .choices {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .choice {
+      padding: 10px 20px;
+      border: 2px solid black;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 18px;
+      background-color: #fff;
+      transition: background-color 0.3s;
+    }
+    .choice:hover {
+      background-color: #f0f0f0;
+    }
+    .correct {
+      background-color: lightgreen !important;
+    }
+    .incorrect {
+      background-color: lightcoral !important;
+    }
+    #question {
+      font-size: 22px;
+      margin: 20px;
+    }
+    .fraction {
+      display: inline-block;
+      text-align: center;
+      vertical-align: middle;
+      margin: 0 2px;
+    }
+    .fraction .top {
+      display: block;
+      border-bottom: 1px solid #000;
+      padding: 0 2px;
+    }
+    .fraction .bottom {
+      display: block;
+      padding: 0 2px;
+    }
+    #feedback {
+      font-size: 20px;
+      margin: 20px;
+    }
+    #starCounter {
+      display: inline-block;
+      margin-right: 20px;
+    }
+    #message {
+      display: inline-block;
+      height: 24px;
+    }
+    /* Visual container styles */
+    .visual-container {
+      margin: 20px auto;
+    }
+    .line {
+      display: flex;
+      border: 2px solid black;
+      height: 30px;
+      width: 200px;
+      margin: 5px auto;
+    }
+    .segment {
+      flex: 1;
+      border-right: 1px solid black;
+      background-color: white;
+    }
+    .segment:last-child {
+      border-right: none;
+    }
+    h2 {
+      margin-top: 40px;
+      font-size: 20px;
+    }
+    /* Hint button styles */
+    #hintBtn {
+      padding: 8px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #hintText {
+      font-size: 18px;
+      margin-top: 10px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Divide Fractions</h1>
+  <div id="question"></div>
+  <button id="hintBtn">Show Hint</button>
+  <div id="hintText" style="display:none;"></div>
+
+  <!-- Visualizations -->
+  <h2>Fraction Bars</h2>
+  <div id="visual1" class="visual-container"></div>
+  <div id="visual2" class="visual-container"></div>
+  
+  <h2>Multiplication Grid (Using Reciprocal)</h2>
+  <div id="visualGrid" class="visual-container"></div>
+  
+  <div class="choices" id="choices"></div>
+  <div id="feedback">
+    <span id="starCounter">⭐ 0</span>
+    <span id="message"></span>
+  </div>
+  
+  <script>
+    var starCount = 0;
+
+    // Update the star counter display
+    function updateStarCounter() {
+      document.getElementById("starCounter").innerHTML = "⭐ " + starCount;
+    }
+
+    // Render a fraction in vertical layout (for answer choices)
+    function renderFraction(numerator, denominator) {
+      return '<span class="fraction"><span class="top">' + numerator + '</span><span class="bottom">' + denominator + '</span></span>';
+    }
+
+    // Compute greatest common divisor (GCD)
+    function gcd(a, b) {
+      return b === 0 ? a : gcd(b, a % b);
+    }
+
+    // Return the fraction in simplest form as a string "num/denom"
+    function simplifyFraction(n, d) {
+      var g = gcd(n, d);
+      return (n / g) + "/" + (d / g);
+    }
+
+    // Fisher-Yates shuffle to randomize choices
+    function shuffleArray(array) {
+      for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+      }
+    }
+
+    // Draw a fraction bar visualization inside a given container
+    function generateVisualBar(numerator, denominator, containerId) {
+      var container = document.getElementById(containerId);
+      container.innerHTML = "";
+      var line = document.createElement("div");
+      line.className = "line";
+      for (var i = 0; i < denominator; i++) {
+        var segment = document.createElement("div");
+        segment.className = "segment";
+        if (i < numerator) {
+          segment.style.backgroundColor = "lightgray";
+        }
+        line.appendChild(segment);
+      }
+      container.appendChild(line);
+    }
+
+    // Create a grid visualization to represent the multiplication of fractions.
+    // For division, we use the reciprocal of the second fraction.
+    // The grid has denominator1 columns and flippedDenom rows. The highlighted area (first numerator1 columns and first flippedNumerator rows)
+    // represents the product area.
+    function generateMultiplicationGrid(numerator1, denominator1, flippedNumerator, flippedDenom) {
+      var gridContainer = document.getElementById("visualGrid");
+      gridContainer.innerHTML = "";
+      for (var r = 0; r < flippedDenom; r++) {
+        var line = document.createElement("div");
+        line.className = "line";
+        for (var c = 0; c < denominator1; c++) {
+          var segment = document.createElement("div");
+          segment.className = "segment";
+          if (r < flippedNumerator && c < numerator1) {
+            segment.style.backgroundColor = "lightgreen";
+          }
+          line.appendChild(segment);
+        }
+        gridContainer.appendChild(line);
+      }
+    }
+
+    // Generate a new question where the user divides two fractions
+    function generateQuestion() {
+      document.getElementById("message").innerHTML = "";
+      document.getElementById("hintText").style.display = "none";
+      var choices = [];
+      var denominators = [2, 3, 4, 5, 6, 8, 10];
+      
+      // Randomly generate two fractions for division
+      var numerator1 = Math.floor(Math.random() * 8) + 1; // 1 to 8
+      var denominator1 = denominators[Math.floor(Math.random() * denominators.length)];
+      var numerator2 = Math.floor(Math.random() * 8) + 1;
+      var denominator2 = denominators[Math.floor(Math.random() * denominators.length)];
+
+      // Render fraction bars for each fraction
+      generateVisualBar(numerator1, denominator1, "visual1");
+      generateVisualBar(numerator2, denominator2, "visual2");
+
+      // Compute the reciprocal of the second fraction for division
+      var flippedNumerator = denominator2;
+      var flippedDenom = numerator2;
+
+      // Create the multiplication grid showing the multiplication of the first fraction and the reciprocal of the second fraction
+      generateMultiplicationGrid(numerator1, denominator1, flippedNumerator, flippedDenom);
+
+      // Calculate division result: (numerator1/denom1) ÷ (numerator2/denom2) = (numerator1 * denominator2) / (denom1 * numerator2)
+      var resultNumerator = numerator1 * denominator2;
+      var resultDenom = denominator1 * numerator2;
+      var correctFraction = simplifyFraction(resultNumerator, resultDenom);
+
+      // Prepare the question text using rendered fractions
+      var fractionDisplay1 = renderFraction(numerator1, denominator1);
+      var fractionDisplay2 = renderFraction(numerator2, denominator2);
+      var questionText = "Divide " + fractionDisplay1 + " ÷ " + fractionDisplay2 + ":";
+
+      // Set up the hint message with flipped fraction details
+      var hintMsg = "Hint: Dividing by a fraction is the same as multiplying by its reciprocal. Flip " + fractionDisplay2 + " to " + renderFraction(denominator2, numerator2) + ".";
+      document.getElementById("hintText").innerHTML = hintMsg;
+      
+      // Generate wrong answer choices (avoiding duplicates)
+      while (choices.length < 4) {
+        var candidate = null;
+        if (Math.random() < 0.5) {
+          // Adjust the numerator slightly
+          var offset = Math.floor(Math.random() * 5) - 2;
+          if (offset === 0) { offset = 1; }
+          var newNumerator = resultNumerator + offset;
+          if (newNumerator > 0) {
+            candidate = simplifyFraction(newNumerator, resultDenom);
+          }
+        }
+        if (!candidate) {
+          // Adjust the denominator slightly
+          var offset2 = Math.floor(Math.random() * 5) - 2;
+          if (offset2 === 0) { offset2 = 1; }
+          var newDenom = resultDenom + offset2;
+          if (newDenom > 0) {
+            candidate = simplifyFraction(resultNumerator, newDenom);
+          }
+        }
+        if (choices.indexOf(candidate) === -1) {
+          choices.push(candidate);
+        }
+      }
+      
+      // Always include the correct answer and then randomize the order
+      choices.unshift(correctFraction);
+      choices = Array.from(new Set(choices)).slice(0,4);
+      if (choices.indexOf(correctFraction) === -1) {
+        choices[0] = correctFraction;
+      }
+      shuffleArray(choices);
+      
+      document.getElementById("question").innerHTML = questionText;
+      var choicesDiv = document.getElementById("choices");
+      choicesDiv.innerHTML = "";
+      for (var i = 0; i < choices.length; i++) {
+        var choice = choices[i];
+        var parts = choice.split("/");
+        var displayFraction = renderFraction(parts[0], parts[1]);
+        var btn = document.createElement("div");
+        btn.className = "choice";
+        btn.innerHTML = displayFraction;
+        btn.onclick = (function(selected, correct) {
+          return function() {
+            if (selected === correct) {
+              this.classList.add("correct");
+              document.getElementById("message").innerHTML = "Correct! 🎉";
+              starCount++;
+              updateStarCounter();
+              setTimeout(generateQuestion, 1000);
+            } else {
+              this.classList.add("incorrect");
+              document.getElementById("message").innerHTML = "Incorrect! ❌";
+              starCount--;
+              updateStarCounter();
+            }
+          };
+        })(choice, correctFraction);
+        choicesDiv.appendChild(btn);
+      }
+    }
+
+    // Event listener for hint button
+    document.getElementById("hintBtn").addEventListener("click", function() {
+      var hintDiv = document.getElementById("hintText");
+      if (hintDiv.style.display === "none") {
+        hintDiv.style.display = "block";
+      } else {
+        hintDiv.style.display = "none";
+      }
+    });
+
+    window.onload = function() {
+      updateStarCounter();
+      generateQuestion();
+    };
+  </script>
+</body>
+</html>
