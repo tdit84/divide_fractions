@@ -79,21 +79,26 @@
       margin-top: 10px;
       color: #555;
     }
-    /* Flip animation for the reciprocal fraction */
-    @keyframes flip {
+    /* Animation for sign change */
+    #hintSign {
+      transition: opacity 0.5s ease;
+    }
+    /* Rotate animation for the second fraction in the hint area */
+    @keyframes rotateSpin {
       from { transform: rotate(0deg); }
       to { transform: rotate(180deg); }
     }
-    .flip-animation {
-      display: inline-block;
-      animation: flip 1s ease;
+    .rotate-animation {
+      animation: rotateSpin 1s ease;
     }
   </style>
 </head>
 <body>
   <h1>Divide Fractions</h1>
+  <!-- Main problem (no animation) -->
   <div id="question"></div>
   <button id="hintBtn">Show Hint</button>
+  <!-- Hint area: displays a copy of the division problem which will transform -->
   <div id="hintText" style="display:none;"></div>
   <div class="choices" id="choices"></div>
   <div id="feedback">
@@ -103,29 +108,32 @@
   
   <script>
     var starCount = 0;
-
-    // Update the star counter display
+    // These global variables store the second fraction in its original form and its reciprocal.
+    var currentOriginalSecondFraction = "";
+    var currentReciprocalFraction = "";
+    
+    // Update the star counter display.
     function updateStarCounter() {
       document.getElementById("starCounter").innerHTML = "⭐ " + starCount;
     }
-
-    // Render a fraction in vertical layout
+    
+    // Render a fraction in vertical layout.
     function renderFraction(numerator, denominator) {
       return '<span class="fraction"><span class="top">' + numerator + '</span><span class="bottom">' + denominator + '</span></span>';
     }
-
-    // Compute greatest common divisor (GCD)
+    
+    // Compute greatest common divisor (GCD).
     function gcd(a, b) {
       return b === 0 ? a : gcd(b, a % b);
     }
-
-    // Return the fraction in simplest form as a string "num/denom"
+    
+    // Return the fraction in simplest form as a string "num/denom".
     function simplifyFraction(n, d) {
       var g = gcd(n, d);
       return (n / g) + "/" + (d / g);
     }
-
-    // Fisher-Yates shuffle to randomize answer choices
+    
+    // Fisher-Yates shuffle to randomize answer choices.
     function shuffleArray(array) {
       for (var i = array.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
@@ -134,38 +142,48 @@
         array[j] = temp;
       }
     }
-
-    // Generate a new division question
+    
+    // Generate a new division question.
     function generateQuestion() {
       document.getElementById("message").innerHTML = "";
       document.getElementById("hintText").style.display = "none";
       var choices = [];
       var denominators = [2, 3, 4, 5, 6, 8, 10];
       
-      // Randomly generate two fractions for division
+      // Randomly generate two fractions.
       var numerator1 = Math.floor(Math.random() * 8) + 1;
       var denominator1 = denominators[Math.floor(Math.random() * denominators.length)];
       var numerator2 = Math.floor(Math.random() * 8) + 1;
       var denominator2 = denominators[Math.floor(Math.random() * denominators.length)];
       
-      // Render fractions for display
+      // Render the fractions for display.
       var fractionDisplay1 = renderFraction(numerator1, denominator1);
       var fractionDisplay2 = renderFraction(numerator2, denominator2);
       
-      // Set up the question text
+      // Set up the main question text (unchanged).
       var questionText = "Divide " + fractionDisplay1 + " ÷ " + fractionDisplay2 + ":";
       
-      // Calculate the division result: (numerator1/denom1) ÷ (numerator2/denom2) = (numerator1 * denominator2) / (denom1 * numerator2)
+      // Calculate the division result.
       var resultNumerator = numerator1 * denominator2;
       var resultDenom = denominator1 * numerator2;
       var correctFraction = simplifyFraction(resultNumerator, resultDenom);
       
-      // Set up the hint message with an animated reciprocal flip of the second fraction
-      var hintMsg = "Hint: Dividing by a fraction is the same as multiplying by its reciprocal. Flip " + fractionDisplay2 + " to " +
-          "<span class='flip-animation'>" + renderFraction(denominator2, numerator2) + "</span>.";
-      document.getElementById("hintText").innerHTML = hintMsg;
+      // Store the original second fraction and its reciprocal for the hint animation.
+      currentOriginalSecondFraction = fractionDisplay2;
+      currentReciprocalFraction = renderFraction(denominator2, numerator2);
       
-      // Generate wrong answer choices (avoiding duplicates)
+      // Set up the hint area with a copy of the division problem.
+      // In the hint area, the first fraction remains unchanged.
+      // The sign and second fraction will animate to show the transformation.
+      document.getElementById("hintText").innerHTML =
+        "<div id='hintInstruction' style='margin-bottom:10px;'>Hint: Watch the transformation:</div>" +
+        "<div id='hintTransformation'>" +
+          "<span id='hintFraction1'>" + fractionDisplay1 + "</span>" +
+          "<span id='hintSign'> ÷ </span>" +
+          "<span id='hintFraction2'>" + currentOriginalSecondFraction + "</span>" +
+        "</div>";
+      
+      // Generate wrong answer choices (avoiding duplicates).
       while (choices.length < 4) {
         var candidate = null;
         if (Math.random() < 0.5) {
@@ -189,7 +207,7 @@
         }
       }
       
-      // Ensure the correct answer is included and randomize the order
+      // Ensure the correct answer is included and randomize the order.
       choices.unshift(correctFraction);
       choices = Array.from(new Set(choices)).slice(0,4);
       if (choices.indexOf(correctFraction) === -1) {
@@ -226,13 +244,31 @@
         choicesDiv.appendChild(btn);
       }
     }
-
-    // Toggle the hint display when the button is clicked
+    
+    // Event listener for the hint button to trigger the transformation animation.
     document.getElementById("hintBtn").addEventListener("click", function() {
       var hintDiv = document.getElementById("hintText");
-      hintDiv.style.display = (hintDiv.style.display === "none") ? "block" : "none";
+      if (hintDiv.style.display === "none") {
+        hintDiv.style.display = "block";
+        // Animate the sign: fade out then change from "÷" to "×", then fade in.
+        var signElem = document.getElementById("hintSign");
+        signElem.style.opacity = "0";
+        setTimeout(function() {
+          signElem.innerText = " × ";
+          signElem.style.opacity = "1";
+        }, 500);
+        // Animate the second fraction: apply rotation animation and update content after animation.
+        var secondFracElem = document.getElementById("hintFraction2");
+        secondFracElem.classList.add("rotate-animation");
+        setTimeout(function() {
+          secondFracElem.innerHTML = currentReciprocalFraction;
+          secondFracElem.classList.remove("rotate-animation");
+        }, 1000);
+      } else {
+        hintDiv.style.display = "none";
+      }
     });
-
+    
     window.onload = function() {
       updateStarCounter();
       generateQuestion();
