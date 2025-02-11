@@ -79,7 +79,7 @@
       margin-top: 10px;
       color: #555;
     }
-    /* Flip animation for the transformed expression */
+    /* Flip animation for the reciprocal fraction */
     @keyframes flip {
       from { transform: rotate(0deg); }
       to { transform: rotate(180deg); }
@@ -160,13 +160,9 @@
       var resultDenom = denominator1 * numerator2;
       var correctFraction = simplifyFraction(resultNumerator, resultDenom);
       
-      // Prepare the hint with an animated transformation:
-      // Show the original problem, then animate to show it turning into a multiplication problem with the reciprocal.
-      var originalExpr = fractionDisplay1 + " ÷ " + fractionDisplay2;
-      var transformedExpr = fractionDisplay1 + " × " + renderFraction(denominator2, numerator2);
-      var hintMsg = "Hint: Dividing by a fraction is the same as multiplying by its reciprocal.<br><br>" +
-                    "Original: " + originalExpr + "<br>" +
-                    "Transformed: <span class='flip-animation'>" + transformedExpr + "</span>";
+      // Set up the hint message with an animated reciprocal flip of the second fraction
+      var hintMsg = "Hint: Dividing by a fraction is the same as multiplying by its reciprocal. Flip " + fractionDisplay2 + " to " +
+          "<span class='flip-animation'>" + renderFraction(denominator2, numerator2) + "</span>.";
       document.getElementById("hintText").innerHTML = hintMsg;
       
       // Generate wrong answer choices (avoiding duplicates)
