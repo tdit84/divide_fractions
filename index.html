@@ -79,11 +79,7 @@
       margin-top: 10px;
       color: #555;
     }
-    /* Animation for sign change */
-    #hintSign {
-      transition: opacity 0.5s ease;
-    }
-    /* Rotate animation for the second fraction in the hint area */
+    /* Rotate animation for spinning elements */
     @keyframes rotateSpin {
       from { transform: rotate(0deg); }
       to { transform: rotate(180deg); }
@@ -95,10 +91,13 @@
 </head>
 <body>
   <h1>Divide Fractions</h1>
-  <!-- Main problem (no animation) -->
+  <!-- Main problem: simply displays the division problem -->
   <div id="question"></div>
   <button id="hintBtn">Show Hint</button>
-  <!-- Hint area: displays a copy of the division problem which will transform -->
+  <!-- Hint area: contains two parts.
+       1. A static sentence with the transformation.
+       2. A lower copy of the division problem that will animate.
+  -->
   <div id="hintText" style="display:none;"></div>
   <div class="choices" id="choices"></div>
   <div id="feedback">
@@ -108,7 +107,7 @@
   
   <script>
     var starCount = 0;
-    // These global variables store the second fraction in its original form and its reciprocal.
+    // Global variables to store the original second fraction and its reciprocal (as rendered HTML).
     var currentOriginalSecondFraction = "";
     var currentReciprocalFraction = "";
     
@@ -156,11 +155,11 @@
       var numerator2 = Math.floor(Math.random() * 8) + 1;
       var denominator2 = denominators[Math.floor(Math.random() * denominators.length)];
       
-      // Render the fractions for display.
+      // Render fractions for display.
       var fractionDisplay1 = renderFraction(numerator1, denominator1);
       var fractionDisplay2 = renderFraction(numerator2, denominator2);
       
-      // Set up the main question text (unchanged).
+      // Main question (remains unchanged).
       var questionText = "Divide " + fractionDisplay1 + " ÷ " + fractionDisplay2 + ":";
       
       // Calculate the division result.
@@ -168,19 +167,22 @@
       var resultDenom = denominator1 * numerator2;
       var correctFraction = simplifyFraction(resultNumerator, resultDenom);
       
-      // Store the original second fraction and its reciprocal for the hint animation.
+      // Store the original second fraction and its reciprocal for use in the hint.
       currentOriginalSecondFraction = fractionDisplay2;
       currentReciprocalFraction = renderFraction(denominator2, numerator2);
       
-      // Set up the hint area with a copy of the division problem.
-      // In the hint area, the first fraction remains unchanged.
-      // The sign and second fraction will animate to show the transformation.
+      // Set up the hint area.
+      // Part 1: a static sentence with the transformation.
+      // Part 2: a lower copy of the division problem that will animate.
       document.getElementById("hintText").innerHTML =
-        "<div id='hintInstruction' style='margin-bottom:10px;'>Hint: Watch the transformation:</div>" +
+        "<div id='hintSentence' style='margin-bottom:10px;'>" +
+          "Hint: Dividing by a fraction is the same as multiplying by its reciprocal. Flip " +
+          currentOriginalSecondFraction + " to " + currentReciprocalFraction +
+        "</div>" +
         "<div id='hintTransformation'>" +
-          "<span id='hintFraction1'>" + fractionDisplay1 + "</span>" +
-          "<span id='hintSign'> ÷ </span>" +
-          "<span id='hintFraction2'>" + currentOriginalSecondFraction + "</span>" +
+          "<span id='hintFrac1'>" + fractionDisplay1 + "</span>" +
+          "<span id='hintMulSign'> ÷ </span>" +
+          "<span id='hintFrac2'>" + currentOriginalSecondFraction + "</span>" +
         "</div>";
       
       // Generate wrong answer choices (avoiding duplicates).
@@ -209,7 +211,7 @@
       
       // Ensure the correct answer is included and randomize the order.
       choices.unshift(correctFraction);
-      choices = Array.from(new Set(choices)).slice(0,4);
+      choices = Array.from(new Set(choices)).slice(0, 4);
       if (choices.indexOf(correctFraction) === -1) {
         choices[0] = correctFraction;
       }
@@ -245,20 +247,20 @@
       }
     }
     
-    // Event listener for the hint button to trigger the transformation animation.
+    // Event listener for the hint button to trigger the lower transformation animation.
     document.getElementById("hintBtn").addEventListener("click", function() {
       var hintDiv = document.getElementById("hintText");
       if (hintDiv.style.display === "none") {
         hintDiv.style.display = "block";
-        // Animate the sign: fade out then change from "÷" to "×", then fade in.
-        var signElem = document.getElementById("hintSign");
-        signElem.style.opacity = "0";
+        // Animate the multiplication sign in the lower transformation.
+        var signElem = document.getElementById("hintMulSign");
+        signElem.classList.add("rotate-animation");
         setTimeout(function() {
           signElem.innerText = " × ";
-          signElem.style.opacity = "1";
+          signElem.classList.remove("rotate-animation");
         }, 500);
-        // Animate the second fraction: apply rotation animation and update content after animation.
-        var secondFracElem = document.getElementById("hintFraction2");
+        // Animate the second fraction in the lower transformation.
+        var secondFracElem = document.getElementById("hintFrac2");
         secondFracElem.classList.add("rotate-animation");
         setTimeout(function() {
           secondFracElem.innerHTML = currentReciprocalFraction;
